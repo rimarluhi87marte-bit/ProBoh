@@ -1,0 +1,36 @@
+{
+  "manifest_version": 3,
+  "name": "ProBoh",
+  "version": "1.0",
+  "permissions": [
+    "activeTab",
+    "scripting"
+  ],
+  "host_permissions": [
+    "https://*.supabase.co/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://prod.progrentis.com/plat/*"
+      ],
+      "js": [
+        "src/utils.js",
+        "src/ui.js",
+        "src/strategies/quiz.js",
+        "src/strategies/ordering.js",
+        "src/strategies/memory.js",
+        "src/strategies/colors.js",
+        "src/strategies/position.js",
+        "src/strategies/attention.js",
+        "src/strategies/selective.js",
+        "src/strategies/alternating.js",
+        "src/strategies/counting.js",
+        "src/router.js"
+      ]
+    }
+  ]
+}
