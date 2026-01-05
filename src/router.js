@@ -61,6 +61,11 @@ function iniciarRouterDeEstrategias() {
         if (estrategiaEncontrada) {
             if (estrategiaActual !== estrategiaEncontrada) {
                 console.log(`Extensión: 🔄 Entrando a -> ${estrategiaEncontrada.nombre}`);
+
+                if (estrategiaActual && typeof estrategiaActual.detener === 'function') {
+                    estrategiaActual.detener();
+                }
+                
                 estrategiaActual = estrategiaEncontrada;
                 
                 // Reseteos genéricos

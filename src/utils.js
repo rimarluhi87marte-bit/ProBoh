@@ -42,3 +42,20 @@ window.ProBot.Utils.procesarConsulta = function(hash, callbackExito) {
         }
     });
 };
+
+// En utils.js
+window.ProBot.Utils.debug = function() {
+    console.group("🤖 REPORTE DE ESTADO DEL BOT");
+    console.log("Usuario Autorizado:", window.ProBot.Config.usuarioAutorizado);
+    console.log("Estrategia Actual:", estrategiaActual ? estrategiaActual.nombre : "Ninguna");
+    console.log("HTML Detectado (Huellas):");
+    
+    // Lista todas las estrategias y dice cuál detecta
+    for (const key in window.ProBot.Estrategias) {
+        const est = window.ProBot.Estrategias[key];
+        const detectado = document.querySelector(est.huella);
+        console.log(`- ${est.nombre}: ${detectado ? "✅ SÍ" : "❌ NO"}`);
+    }
+    console.groupEnd();
+};
+

@@ -1,4 +1,4 @@
-// --- src/strategies/counting.js ---
+// --- Ejercicio de atencion dividida ---
 
 window.ProBot.Estrategias.CLASIFICACION_FRUTAS = {
     nombre: "Clasificar y Contar",

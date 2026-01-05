@@ -2,7 +2,7 @@
 
 window.ProBot.Estrategias.ATENCION_ALTERNADA = {
     nombre: "Atención Alternada",
-    huella: 'div[container]', // Buscamos el contenedor padre
+    huella: '.glass', // Buscamos el contenedor padre
     
     intervaloScanner: null,
     ultimaHuellaResolucion: "", // Para no repetir clicks en el mismo "frame" del ejercicio

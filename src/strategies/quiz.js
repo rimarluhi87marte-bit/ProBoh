@@ -33,7 +33,7 @@ window.ProBot.Estrategias.SELECCION_SIMPLE = {
 
     ejecutar: function(respuestaCorrecta) {
         window.ProBot.UI.setAccion('executing'); 
-        const delay = Math.floor(Math.random() * (3000 - 1500) + 1500);
+        const delay = Math.floor(1000);
         setTimeout(() => {
             const opciones = document.querySelectorAll('.opcion-respuesta .zelda-texto span');
             for (let op of opciones) {

@@ -1,4 +1,4 @@
-// --- src/strategies/position.js ---
+// --- Recordar posiciones de  ---
 
 window.ProBot.Estrategias.RECORDAR_POSICION = {
     nombre: "Recordar Posición",

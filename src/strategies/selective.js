@@ -35,7 +35,7 @@ window.ProBot.Estrategias.ATENCION_SELECTIVA = {
 
         this.intervaloScanner = setInterval(() => {
             this.ciclo();
-        }, 100);
+        }, 300);
     },
 
     ciclo: async function() {
