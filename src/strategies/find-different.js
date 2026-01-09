@@ -2,60 +2,61 @@
 
 window.ProBot.Estrategias.BUSCA_DIFERENTE = {
     nombre: "Busca la Figura Diferente",
-    // Huella única: Buscamos imágenes reales dentro de las figuras (el de colores no tiene)
     huella: '.ejercicio__figuras__titulo strong', 
     
     intervaloScanner: null,
-    ultimaHuellaRonda: "", // Para detectar cambio de nivel
+    ultimaHuellaRonda: "", 
     procesado: false,
 
+    // --- NUEVO: FUNCIÓN DE VALIDACIÓN PARA EL ROUTER ---
+    validar: function(elementoHuella) {
+        // elementoHuella es el <strong> encontrado por el router
+        const texto = elementoHuella.innerText.toLowerCase();
+        // Solo aceptamos si dice "diferente". Si dice "cambió", rechazamos.
+        return texto.includes('diferente');
+    },
+    // ---------------------------------------------------
+
     iniciar: function() {
+        // Ya no necesitamos el filtro aquí dentro porque el Router ya filtró
         window.ProBot.UI.setConocimiento('found');
 
         if (this.intervaloScanner) return;
 
-        console.log("Extensión: 👀 Buscador de Diferencias Activo...");
+        console.log("Extensión: 👀 Buscador de Diferencias (Validado) Activo...");
 
-        // Escáner cada 100ms
         this.intervaloScanner = setInterval(() => {
             this.ciclo();
-        }, 800);
+        }, 100);
     },
 
     ciclo: async function() {
-        // 1. OBTENER IMÁGENES
         const imagenes = document.querySelectorAll('.ejercicio__figuras__figura__imagen img');
         if (imagenes.length === 0) return;
 
-        // 2. GENERAR HUELLA DE LA RONDA
-        // Concatenamos las primeras 3 fuentes para saber si cambiaron las imágenes
-        // (Suficiente para saber si es un nuevo set)
         let huellaActual = "";
         imagenes.forEach((img, i) => {
             if (i < 3) huellaActual += img.src;
         });
 
-        // Si es la misma ronda que ya resolvimos, no hacemos nada
-        if (huellaActual === this.ultimaHuellaRonda && this.procesado) return;
+        if (huellaActual !== this.ultimaHuellaRonda) {
+            this.ultimaHuellaRonda = huellaActual;
+            this.procesado = false;
+        }
 
-        // --- NUEVA RONDA DETECTADA ---
-        this.ultimaHuellaRonda = huellaActual;
-        this.procesado = false;
-        
-        console.log("Extensión: 🆕 Nueva ronda de figuras detectada.");
-        await this.resolver(imagenes);
+        if (!this.procesado) {
+            await this.resolver(imagenes);
+        }
     },
 
     resolver: async function(listaImagenes) {
-        this.procesado = true; // Bloqueamos
+        this.procesado = true;
         window.ProBot.UI.setAccion('executing');
 
-        // Espera humana
-        await window.ProBot.Utils.esperar(100);
+        await window.ProBot.Utils.esperar(Math.random() * 400 + 400);
 
-        // 1. CONTAR APARICIONES
         const conteoSrc = {};
-        const mapaElementos = []; // Guardamos { src, elemento }
+        const mapaElementos = []; 
 
         listaImagenes.forEach(img => {
             const src = img.src;
@@ -63,7 +64,6 @@ window.ProBot.Estrategias.BUSCA_DIFERENTE = {
             mapaElementos.push({ src: src, dom: img });
         });
 
-        // 2. BUSCAR EL ÚNICO (Count == 1)
         let srcUnico = null;
         for (const [src, count] of Object.entries(conteoSrc)) {
             if (count === 1) {
@@ -72,23 +72,24 @@ window.ProBot.Estrategias.BUSCA_DIFERENTE = {
             }
         }
 
-        // 3. CLICKEAR
         if (srcUnico) {
             const objetivo = mapaElementos.find(item => item.src === srcUnico);
             if (objetivo) {
-                // Click en la imagen
                 objetivo.dom.click();
                 console.log("Extensión: 🎯 Click en la figura diferente.");
             }
         } else {
-            console.warn("Extensión: ⚠️ No encontré una figura única. ¿Son todas iguales?");
-            this.procesado = false; // Permitir reintento si falló el análisis
+            console.warn("Extensión: ⚠️ No encontré una figura única.");
+            this.procesado = false; 
         }
 
         window.ProBot.UI.setAccion('idle');
     },
 
-    aprender: function() {
-        // Algorítmico
+    aprender: function() { },
+    
+    detener: function() {
+        if (this.intervaloScanner) clearInterval(this.intervaloScanner);
+        this.intervaloScanner = null;
     }
 };

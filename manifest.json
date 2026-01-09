@@ -20,47 +20,48 @@
       "js": [
         "src/utils.js",
         "src/ui.js",
-        
         // --- NIVEL 1: IDs ÚNICOS (Prioridad Máxima) ---
-        "src/strategies/bulb.js",               // #container-bombilla-bolita
-        "src/strategies/spark.js",              // #corto
-        "src/strategies/pattern.js",            // #abajoIzquierda
+        "src/strategies/bulb.js", // #container-bombilla-bolita
+        "src/strategies/spark.js", // #corto
+        "src/strategies/pattern.js", // #abajoIzquierda
         "src/strategies/alternating-direction.js", // #btn_arriba
-        "src/strategies/text-line.js",          // #IdDivTextoDVLineaTexto
-        "src/strategies/text-block.js",         // #IdDivTextoDVBloqueTextoDescendente
-        "src/strategies/number-drag.js",        // #etiquetaNumeros
-        "src/strategies/drag-sequence.js",      // #contenedorCuadros
-        "src/strategies/stopwatch.js",          // [estilotiempodetiene]
-        
+        "src/strategies/text-line.js", // #IdDivTextoDVLineaTexto
+        "src/strategies/text-block.js", // #IdDivTextoDVBloqueTextoDescendente
+        "src/strategies/text-columns.js",
+        "src/strategies/number-drag.js", // #etiquetaNumeros
+        "src/strategies/drag-sequence.js", // #contenedorCuadros
+        "src/strategies/stopwatch.js", // [estilotiempodetiene]
+        "src/strategies/duplicate-icon.js", // #contenedorIcono
         // --- NIVEL 2: CLASES ESPECÍFICAS O ATRIBUTOS ---
-        "src/strategies/counting.js",           // [clasifica-juego]
-        "src/strategies/number-sequence.js",    // [container_numeros]
-        "src/strategies/memory-grid.js",        // .contenedor-grid
-        "src/strategies/memory-letters.js",     // .cartas-container
-        "src/strategies/sliding.js",            // #contenedorIconosMostrar
-        "src/strategies/form-filling.js",       // #contenedor-interno
-        "src/strategies/analogies.js",          // .texto-preguntar
-        "src/strategies/orthography.js",        // .actividad__opciones
-        "src/strategies/divided.js",            // #vaso-con-liquido
-        "src/strategies/divided-memory.js",     // .container_sombrero
-        "src/strategies/alternating-balls.js",  // div[contain-borde]
-        "src/strategies/alternating.js",        // div[caja]
-        
+        "src/strategies/counting.js", // [clasifica-juego]
+        "src/strategies/number-sequence.js", // [container_numeros]
+        "src/strategies/memory-grid.js", // .contenedor-grid
+        "src/strategies/memory-letters.js", // .cartas-container
+        "src/strategies/sliding.js", // #contenedorIconosMostrar
+        "src/strategies/form-filling.js", // #contenedor-interno
+        "src/strategies/analogies.js", // .texto-preguntar
+        "src/strategies/orthography.js", // .actividad__opciones
+        "src/strategies/word-spelling.js", // .game__word-label
+        "src/strategies/divided.js", // #vaso-con-liquido
+        "src/strategies/divided-memory.js", // .container_sombrero
+        "src/strategies/alternating-balls.js", // div[contain-borde]
+        "src/strategies/alternating.js", // div[caja]
+        "src/strategies/destination.js",
         // --- NIVEL 3: CLASES GENÉRICAS (Peligrosos - Al final) ---
         // Estos usan .ejercicio__figuras y similares, si se ponen arriba se comen a los demás
-        "src/strategies/remember-figure.js",    // Huella compuesta (nowrap)
-        "src/strategies/find-different.js",     // Busca <img> dentro
-        "src/strategies/selective.js",          // Busca span en titulo (El más genérico)
-        "src/strategies/colors.js",             // .grid-cuadros (bastante unico pero por si acaso)
-        "src/strategies/quiz.js",               // #texto-pregunta
-        "src/strategies/quiz-hidden.js",        // #caja-opciones-respuesta
-        "src/strategies/quiz-general.js",       // .panel-ejercicio
-        "src/strategies/ordering.js",           // .contenedor-columnas
-        "src/strategies/memory.js",             // .caja-palabra
-        "src/strategies/position.js",           // #pantallaExplicar
-        "src/strategies/attention.js",          // [elementocambiante]
-        "src/strategies/spinning.js",           // [preguntacontain]
-
+        "src/strategies/remember-figure.js", // Huella compuesta (nowrap)
+        "src/strategies/find-different.js", // Busca <img> dentro
+        "src/strategies/memory-change.js",
+        "src/strategies/selective.js", // Busca span en titulo (El más genérico)
+        "src/strategies/colors.js", // .grid-cuadros (bastante unico pero por si acaso)
+        "src/strategies/quiz.js", // #texto-pregunta
+        "src/strategies/quiz-hidden.js", // #caja-opciones-respuesta
+        "src/strategies/quiz-general.js", // .panel-ejercicio
+        "src/strategies/ordering.js", // .contenedor-columnas
+        "src/strategies/memory.js", // .caja-palabra
+        "src/strategies/position.js", // #pantallaExplicar
+        "src/strategies/attention.js", // [elementocambiante]
+        "src/strategies/spinning.js", // [preguntacontain]
         "src/router.js"
       ]
     }

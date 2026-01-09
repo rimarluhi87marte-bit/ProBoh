@@ -5,7 +5,8 @@ console.log("ProBot: Cargando UI...");
 window.ProBot.UI = {
     els: { 
         container: null, toggle: null, panel: null, 
-        user: null, brain: null, action: null 
+        user: null, brain: null, action: null, 
+        notification: null // Referencia a la notificación actual
     },
     
     colores: {
@@ -16,11 +17,10 @@ window.ProBot.UI = {
         const footer = document.querySelector('.copyright_style');
         if (!footer) return;
 
-        // Evitar duplicados si se llama varias veces
         if (this.els.container) return;
 
         this.els.container = document.createElement('span');
-        this.els.container.style.cssText = "float: right; display: flex; align-items: center; margin-left: 10px;";
+        this.els.container.style.cssText = "float: right; display: flex; align-items: center; margin-left: 10px; position: relative;";
 
         this.els.toggle = document.createElement('span');
         this.els.toggle.innerText = " •"; 
@@ -46,9 +46,61 @@ window.ProBot.UI = {
         this.els.panel.appendChild(this.els.user);
         this.els.panel.appendChild(this.els.brain);
         this.els.panel.appendChild(this.els.action);
+        
         this.els.container.appendChild(this.els.toggle);
         this.els.container.appendChild(this.els.panel);
         footer.appendChild(this.els.container);
+    },
+
+    // --- NUEVA FUNCIÓN DE NOTIFICACIÓN ---
+    showNotification: function(mensaje, duracion = 8000) {
+        // Si ya hay una, la borramos para mostrar la nueva
+        if (this.els.notification) {
+            this.els.notification.remove();
+        }
+
+        const notif = document.createElement('div');
+        notif.innerText = mensaje;
+        
+        // Estilo "Toast" elegante
+        notif.style.cssText = `
+            position: fixed;
+            bottom: 50px;
+            right: 20px;
+            background-color: rgba(10, 10, 10, 0.95);
+            color: #ecf0f1;
+            padding: 15px 20px;
+            border-radius: 4px;
+            border-left: 5px solid #f1c40f; /* Borde amarillo de advertencia */
+            font-family: 'Segoe UI', Arial, sans-serif;
+            font-size: 13px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+            z-index: 2147483647; /* Encima de todo */
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.5s ease;
+            max-width: 300px;
+            line-height: 1.4;
+            pointer-events: none; /* Para que no moleste al click */
+        `;
+
+        document.body.appendChild(notif);
+        this.els.notification = notif;
+
+        // Animación de entrada
+        setTimeout(() => {
+            notif.style.opacity = '1';
+            notif.style.transform = 'translateY(0)';
+        }, 50);
+
+        // Auto-destrucción
+        setTimeout(() => {
+            if (this.els.notification === notif) {
+                notif.style.opacity = '0';
+                notif.style.transform = 'translateY(10px)';
+                setTimeout(() => notif.remove(), 500);
+            }
+        }, duracion);
     },
 
     togglePanel: function() {
@@ -62,7 +114,7 @@ window.ProBot.UI = {
     },
 
     setUsuario: function(activo) {
-        if(this.els.user) this.els.user.style.backgroundColor = activo ? this.colores.verde : this.colores.rojo;
+        if(this.els.user) this.els.user.style.backgroundColor = activo ? this.colores.verde : this.colores.gris;
     },
 
     setConocimiento: function(estado) { 
