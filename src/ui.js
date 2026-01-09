@@ -62,7 +62,7 @@ window.ProBot.UI = {
     },
 
     setUsuario: function(activo) {
-        if(this.els.user) this.els.user.style.backgroundColor = activo ? this.colores.verde : this.colores.gris;
+        if(this.els.user) this.els.user.style.backgroundColor = activo ? this.colores.verde : this.colores.rojo;
     },
 
     setConocimiento: function(estado) { 

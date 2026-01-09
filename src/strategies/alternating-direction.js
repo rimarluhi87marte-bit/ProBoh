@@ -1,9 +1,9 @@
-// --- Ejercicio de elegir dirección y tamaño ---
+// --- Ejercicio de atencion, elegir dirección y tamaño ---
 
 window.ProBot.Estrategias.ATENCION_DIRECCION_TAMANO = {
     nombre: "Dirección y Tamaño",
     // Huella blindada: Buscamos el contenedor específico de este layout partido
-    huella: '.container-ejercicio .ejercicio__figuras__izquierda', 
+    huella: '#btn_arriba, .ejercicio__figuras__derecha__container', 
     
     intervaloScanner: null,
     ultimaHuellaTurno: "", 

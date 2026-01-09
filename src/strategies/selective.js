@@ -1,8 +1,8 @@
-// Ejercicio de atencion selectiva ---
+// Ejercicio de atencion selectiva colores unidad 7 ---
 
 window.ProBot.Estrategias.ATENCION_SELECTIVA = {
     nombre: "Atención Selectiva",
-    huella: '.ejercicio__figuras', 
+    huella: '.ejercicio__figuras__titulo span', 
     
     // Diccionario de Colores (Texto -> RGB)
     coloresMap: {

@@ -3,7 +3,7 @@
 window.ProBot.Estrategias.BUSCA_DIFERENTE = {
     nombre: "Busca la Figura Diferente",
     // Huella única: Buscamos imágenes reales dentro de las figuras (el de colores no tiene)
-    huella: '.ejercicio__figuras__figura__imagen img', 
+    huella: '.ejercicio__figuras__titulo strong', 
     
     intervaloScanner: null,
     ultimaHuellaRonda: "", // Para detectar cambio de nivel

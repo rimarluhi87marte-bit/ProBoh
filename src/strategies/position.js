@@ -1,4 +1,4 @@
-// --- Recordar posiciones de  ---
+// --- Recordar posiciones  ---
 
 window.ProBot.Estrategias.RECORDAR_POSICION = {
     nombre: "Recordar Posición",

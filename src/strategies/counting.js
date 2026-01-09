@@ -1,4 +1,4 @@
-// --- Ejercicio de atencion dividida ---
+// --- Ejercicio de atencion dividida unidad 7 ---
 
 window.ProBot.Estrategias.CLASIFICACION_FRUTAS = {
     nombre: "Clasificar y Contar",

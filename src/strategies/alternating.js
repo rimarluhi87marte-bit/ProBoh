@@ -1,4 +1,4 @@
-// --- Ejercicio de atencion alternada ---
+// --- Ejercicio de atencion alternada unidad 7 ---
 
 window.ProBot.Estrategias.ATENCION_ALTERNADA = {
     nombre: "Atención Alternada",

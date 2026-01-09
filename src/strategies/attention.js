@@ -1,4 +1,4 @@
-// -Ejercicio de atencion sostenida ---
+// -Ejercicio de atencion sostenida unidad 7 ---
 
 window.ProBot.Estrategias.ATENCION_TRIANGULO = {
     nombre: "Atención Triángulo",

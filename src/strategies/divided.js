@@ -1,4 +1,4 @@
-// --- Ejercicio de atencion dividida 2 ---
+// --- Ejercicio de atencion dividida unidad 8 ---
 
 window.ProBot.Estrategias.ATENCION_DIVIDIDA = {
     nombre: "Atención Dividida",
