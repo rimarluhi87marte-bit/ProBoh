@@ -36,6 +36,7 @@
         "src/strategies/counting.js", // [clasifica-juego]
         "src/strategies/number-sequence.js", // [container_numeros]
         "src/strategies/memory-grid.js", // .contenedor-grid
+        "src/strategies/memory-grid-change.js", 
         "src/strategies/memory-letters.js", // .cartas-container
         "src/strategies/sliding.js", // #contenedorIconosMostrar
         "src/strategies/form-filling.js", // #contenedor-interno
