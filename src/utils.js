@@ -8,9 +8,40 @@ window.ProBot = {
     Utils: {},        // Funciones de ayuda
     UI: {},           // Interfaz visual
     Config: {
-        usuarioAutorizado: false
+        usuarioAutorizado: false,
+          botEnabled: true
     }
 };
+
+// --- GESTIÓN DE ON/OFF ---
+
+// 1. Leer estado al inicio
+chrome.storage.local.get(['botEnabled'], (result) => {
+    window.ProBot.Config.botEnabled = result.botEnabled !== false;
+    console.log(`Extensión: Estado inicial -> ${window.ProBot.Config.botEnabled ? 'ON' : 'OFF'}`);
+    actualizarEstadoVisual();
+});
+
+// 2. Escuchar cambios en vivo (Si le das al botón sin recargar la página)
+chrome.storage.onChanged.addListener((changes, namespace) => {
+    if (changes.botEnabled) {
+        window.ProBot.Config.botEnabled = changes.botEnabled.newValue;
+        console.log(`Extensión: Cambio de estado -> ${window.ProBot.Config.botEnabled ? 'ON' : 'OFF'}`);
+        actualizarEstadoVisual();
+        
+        // Si se apaga, forzamos recarga para limpiar intervalos
+        if (!window.ProBot.Config.botEnabled) {
+             window.location.reload();
+        }
+    }
+});
+
+function actualizarEstadoVisual() {
+    // Si la UI ya cargó, actualizamos el color del toggle
+    if (window.ProBot.UI && window.ProBot.UI.els && window.ProBot.UI.els.toggle) {
+        window.ProBot.UI.els.toggle.style.color = window.ProBot.Config.botEnabled ? "#FFFFFF" : "#e74c3c"; // Rojo si está apagado
+    }
+}
 
 // --- Funciones de Ayuda ---
 

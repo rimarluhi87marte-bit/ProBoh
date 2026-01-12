@@ -81,7 +81,7 @@ window.ProBot.Estrategias.ANALOGIAS = {
             }
 
             if (encontrada) break;
-            await window.ProBot.Utils.esperar(500);
+            await window.ProBot.Utils.esperar(1000);
             intentos++;
         }
 

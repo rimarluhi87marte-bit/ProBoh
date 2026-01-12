@@ -1,0 +1,33 @@
+<!-- popup.html -->
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body { width: 200px; padding: 15px; font-family: sans-serif; background: #ed2a2f; color: white; text-align: center; }
+        h3 { margin-top: 0; font-size: 16px; color: #ecf0f1; }
+        
+        .switch-container { margin: 20px 0; }
+        
+        /* Estilo del botón interruptor */
+        .btn {
+            display: block; width: 100%; padding: 10px; border: none; border-radius: 2px;
+            font-weight: bold; cursor: pointer; transition: 0.3s; font-size: 14px;
+        }
+        
+        .btn-on { background: #2ecc71; color: white; box-shadow: 0 4px 0 #27ae60; }
+        .btn-on:active { transform: translateY(4px); box-shadow: none; }
+        
+        .btn-off { background: #6c757d; color: white; box-shadow: 0 4px 0 #c0392b; }
+        .btn-off:active { transform: translateY(4px); box-shadow: none; }
+
+        .status { font-size: 12px; color: #95a5a6; margin-top: 10px; }
+    </style>
+</head>
+<body>
+    <div class="switch-container">
+        <button id="toggleBtn" class="btn">Cargando...</button>
+    </div>
+
+    <script src="popup.js"></script>
+</body>
+</html>

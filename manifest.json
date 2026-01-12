@@ -2,9 +2,23 @@
   "manifest_version": 3,
   "name": "ProBoh",
   "version": "1.0",
+  "icons": {
+    "16": "icons/PROBOH.png",
+    "48": "icons/PROBOH.png",
+    "128": "icons/PROBOH.png"
+  },
+  "action": {
+     "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/PROBOH.png",
+      "48": "icons/PROBOH.png",
+      "128": "icons/PROBOH.png"
+    }
+  },
   "permissions": [
     "activeTab",
-    "scripting"
+    "scripting",
+       "storage" 
   ],
   "host_permissions": [
     "https://*.supabase.co/*"
@@ -12,6 +26,7 @@
   "background": {
     "service_worker": "background.js"
   },
+  
   "content_scripts": [
     {
       "matches": [
@@ -32,15 +47,19 @@
         "src/strategies/drag-sequence.js", // #contenedorCuadros
         "src/strategies/stopwatch.js", // [estilotiempodetiene]
         "src/strategies/duplicate-icon.js", // #contenedorIcono
+        "src/strategies/sliding-prg.js",
         // --- NIVEL 2: CLASES ESPECÍFICAS O ATRIBUTOS ---
         "src/strategies/counting.js", // [clasifica-juego]
         "src/strategies/number-sequence.js", // [container_numeros]
+        "src/strategies/number-match.js",
         "src/strategies/memory-grid.js", // .contenedor-grid
-        "src/strategies/memory-grid-change.js", 
+        "src/strategies/memory-grid-change.js",
         "src/strategies/memory-letters.js", // .cartas-container
         "src/strategies/sliding.js", // #contenedorIconosMostrar
         "src/strategies/form-filling.js", // #contenedor-interno
+        "src/strategies/multitask-math.js",
         "src/strategies/analogies.js", // .texto-preguntar
+        "src/strategies/map-questions.js",
         "src/strategies/orthography.js", // .actividad__opciones
         "src/strategies/word-spelling.js", // .game__word-label
         "src/strategies/divided.js", // #vaso-con-liquido
@@ -48,6 +67,7 @@
         "src/strategies/alternating-balls.js", // div[contain-borde]
         "src/strategies/alternating.js", // div[caja]
         "src/strategies/destination.js",
+        "src/strategies/menu-attention.js",
         // --- NIVEL 3: CLASES GENÉRICAS (Peligrosos - Al final) ---
         // Estos usan .ejercicio__figuras y similares, si se ponen arriba se comen a los demás
         "src/strategies/remember-figure.js", // Huella compuesta (nowrap)

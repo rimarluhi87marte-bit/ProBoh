@@ -14,7 +14,7 @@ window.ProBot.Estrategias.SECUENCIA_NUMEROS = {
 
         if (this.intervaloScanner) return;
 
-        console.log("Extensión: 🔢 Monitor de Números (Wait -> Click) Activo...");
+        console.log("Extensión: 🔢 Monitor de Números (Double Check) Activo...");
         this.procesando = false;
         this.ultimoNumeroClickeado = null;
         this.modoActual = 'ASC';
@@ -24,21 +24,30 @@ window.ProBot.Estrategias.SECUENCIA_NUMEROS = {
         }, 50);
     },
 
+    // Función auxiliar para leer el modo
+    detectarModo: function() {
+        const contenedorInstruccion = document.querySelector('[container_instruccion]');
+        if (contenedorInstruccion) {
+            const texto = contenedorInstruccion.innerText.toLowerCase().trim();
+            if (texto.includes("descendente") || texto.includes("mayor a menor")) {
+                return 'DESC';
+            } else {
+                return 'ASC'; // Por defecto Ascendente
+            }
+        }
+        return this.modoActual; // Si no encuentra texto, mantiene el anterior
+    },
+
     ciclo: async function() {
         if (this.procesando) return;
 
-        // 1. DETECTAR MODO
-        const instruccionSpan = document.querySelector('[container_instruccion] span');
-        if (instruccionSpan) {
-            const texto = instruccionSpan.innerText.toLowerCase();
-            const nuevoModo = texto.includes("descendente") ? 'DESC' : 'ASC';
-
-            if (nuevoModo !== this.modoActual) {
-                console.log(`Extensión: 🔄 Cambio de Modo: ${this.modoActual} -> ${nuevoModo}`);
-                this.modoActual = nuevoModo;
-                this.ultimoNumeroClickeado = null; 
-                return;
-            }
+        // 1. CHEQUEO RÁPIDO DE MODO
+        const nuevoModo = this.detectarModo();
+        if (nuevoModo !== this.modoActual) {
+            console.log(`Extensión: 🔄 Cambio de Modo (Ciclo): ${this.modoActual} -> ${nuevoModo}`);
+            this.modoActual = nuevoModo;
+            this.ultimoNumeroClickeado = null; 
+            return;
         }
 
         // 2. DETECTAR TABLAS
@@ -54,18 +63,26 @@ window.ProBot.Estrategias.SECUENCIA_NUMEROS = {
 
     // --- MODO NORMAL ---
     resolverNormal: async function() {
-        // BLOQUEO INMEDIATO
         this.procesando = true;
         
-        // 1. ESPERA PREVIA (El bot "piensa" 400ms)
+        // Espera previa (Tu ajuste a 500ms)
         await window.ProBot.Utils.esperar(500);
+
+        // --- DOBLE VERIFICACIÓN CRUCIAL ---
+        // Volvemos a leer el modo AHORA que ya pasó la animación/carga
+        const modoPostEspera = this.detectarModo();
+        
+        if (modoPostEspera !== this.modoActual) {
+            console.log(`Extensión: ⚠️ Corrección de Modo tardía: ${this.modoActual} -> ${modoPostEspera}`);
+            this.modoActual = modoPostEspera;
+            this.ultimoNumeroClickeado = null; // Reiniciamos memoria por si acaso
+        }
+        // -----------------------------------
 
         window.ProBot.UI.setAccion('executing');
 
-        // 2. ESCANEO (Después de esperar, por si la pantalla cambió)
         const cajas = document.querySelectorAll('[container-numeroscaja] [numeros-texto]');
         
-        // Si durante la espera desaparecieron las cajas, abortamos
         if (cajas.length === 0) {
             this.procesando = false;
             return;
@@ -73,7 +90,7 @@ window.ProBot.Estrategias.SECUENCIA_NUMEROS = {
 
         let todosLosNumeros = [];
         cajas.forEach(caja => {
-            if (caja.offsetParent !== null && !caja.innerText.trim() == "") {
+            if (caja.offsetParent !== null && caja.innerText.trim() !== "") {
                 const valor = parseInt(caja.innerText.trim());
                 if (!isNaN(valor)) {
                     todosLosNumeros.push({ valor: valor, dom: caja });
@@ -88,7 +105,7 @@ window.ProBot.Estrategias.SECUENCIA_NUMEROS = {
 
         todosLosNumeros.sort((a, b) => a.valor - b.valor);
 
-        // 3. LÓGICA DE MEMORIA
+        // Lógica de memoria
         let candidatos = [];
         if (this.ultimoNumeroClickeado === null) {
             candidatos = todosLosNumeros;
@@ -99,9 +116,9 @@ window.ProBot.Estrategias.SECUENCIA_NUMEROS = {
                 candidatos = todosLosNumeros.filter(n => n.valor < this.ultimoNumeroClickeado);
             }
 
-            // Detección de reinicio de nivel
+            // Detección de reinicio de nivel (si los números no cuadran con la memoria)
             if (candidatos.length === 0 && todosLosNumeros.length > 0) {
-                console.log("Extensión: 🔄 Nuevo nivel detectado.");
+                console.log("Extensión: 🔄 Nuevo nivel detectado (Reinicio memoria).");
                 this.ultimoNumeroClickeado = null;
                 candidatos = todosLosNumeros;
             }
@@ -112,10 +129,10 @@ window.ProBot.Estrategias.SECUENCIA_NUMEROS = {
             return;
         }
 
+        // Selección basada en el modo VERIFICADO
         let objetivo = (this.modoActual === 'ASC') ? candidatos[0] : candidatos[candidatos.length - 1]; 
 
-        // 4. CLICK FINAL
-        console.log(`Extensión: 🔢 Click en ${objetivo.valor}`);
+        console.log(`Extensión: 🔢 Click en ${objetivo.valor} (${this.modoActual})`);
         const clickTarget = objetivo.dom.closest('[numeros-caja]') || objetivo.dom;
         clickTarget.click();
         
@@ -129,13 +146,11 @@ window.ProBot.Estrategias.SECUENCIA_NUMEROS = {
     resolverDistractor: async function() {
         this.procesando = true;
 
-        // 1. ESPERA PREVIA LARGA (El bot detectó la trampa y se toma su tiempo)
         console.log("Extensión: ⚠️ Distractor detectado. Esperando 1s...");
         await window.ProBot.Utils.esperar(1000);
 
         window.ProBot.UI.setAccion('executing');
 
-        // 2. ESCANEO POST-ESPERA
         const cajas = document.querySelectorAll('.numeros-cajadistra [numeros-texto]');
         if (cajas.length === 0) {
             this.procesando = false;
@@ -162,7 +177,6 @@ window.ProBot.Estrategias.SECUENCIA_NUMEROS = {
         }
 
         if (valorUnico) {
-            // Evitar doble click en el mismo evento
             if (this.ultimoNumeroClickeado === parseInt(valorUnico)) {
                 this.procesando = false;
                 return;
@@ -171,7 +185,6 @@ window.ProBot.Estrategias.SECUENCIA_NUMEROS = {
             const objetivo = mapa[valorUnico][0];
             const clickTarget = objetivo.closest('.numeros-cajadistra') || objetivo;
             
-            // 3. CLICK FINAL
             clickTarget.click();
             console.log(`Extensión: ⚡ Click Distractor: ${valorUnico}`);
             

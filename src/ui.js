@@ -37,7 +37,7 @@ window.ProBot.UI = {
             return c;
         };
 
-        this.els.user = crearCirculo("Usuario (Verde: Activo / Gris: Inactivo)");
+        this.els.user = crearCirculo("Usuario (Verde: Activo / Rojo: Inactivo)");
         this.els.brain = crearCirculo("Conocimiento (Verde: Sabe / Rojo: No sabe)");
         this.els.action = crearCirculo("Estado (Verde: Escribiendo / Amarillo: Aprendiendo)");
 
