@@ -6,20 +6,31 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   
-  // A. VERIFICAR USUARIO
   // --- A. VERIFICAR USUARIO ---
   if (request.action === "verificarUsuario") {
-    // CAMBIO AQUÍ: Añadimos ",plus" al select
-    const url = `${SUPABASE_URL}/rest/v1/usuarios?usuario_code=eq.${encodeURIComponent(request.usuario)}&select=activo,plus`;
+    // CAMBIO: Añadimos unidad y unidad_maxima al select
+    const url = `${SUPABASE_URL}/rest/v1/usuarios?usuario_code=eq.${encodeURIComponent(request.usuario)}&select=activo,plus,unidad,unidad_maxima`;
     
     hacerPeticion(url, 'GET').then(data => {
         const existe = Array.isArray(data) && data.length > 0;
-        const activo = existe ? data[0].activo : false;
-        // Leemos el valor de la columna plus (si no existe, es false)
-        const plus = existe ? data[0].plus : false; 
+        let activo = existe ? data[0].activo : false;
+        const plus = existe ? data[0].plus : false;
+        const unidadActual = existe ? (data[0].unidad || 0) : 0;
+        const unidadMaxima = existe ? data[0].unidad_maxima : null;
+
+        // --- LÓGICA DE BLOQUEO POR UNIDAD ---
+        // Si hay límite y la unidad actual es MAYOR que el límite, desactivamos.
+        if (unidadMaxima !== null && unidadActual > unidadMaxima) {
+            console.log(`Usuario ha superado el límite: Actual ${unidadActual} > Max ${unidadMaxima}`);
+            activo = false; // Bloqueo forzoso
+        }
         
-        // Devolvemos todo al content script
-        sendResponse({ existe: existe, activo: activo, plus: plus });
+        sendResponse({ 
+            existe: existe, 
+            activo: activo, 
+            plus: plus,
+            unidadMaxima: unidadMaxima // Enviamos el límite al content script
+        });
     });
     return true; 
   }
@@ -65,21 +76,30 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     return true;
   }
 
-  // --- D. ACTUALIZAR UNIDAD ---
+ // --- D. ACTUALIZAR UNIDAD Y ESTADO ---
   if (request.action === "actualizarUnidad") {
-    const { usuario, unidad } = request;
+    const { usuario, unidad, desactivar } = request;
+    
+    // Preparamos los datos a actualizar
+    const updateData = { unidad: unidad };
+    
+    // Si nos piden desactivar (porque superó el límite), actualizamos esa columna también
+    if (desactivar) {
+        console.log(`Background: BLOQUEANDO usuario ${usuario} por límite superado.`);
+        updateData.activo = false;
+    }
+
     const url = `${SUPABASE_URL}/rest/v1/usuarios?usuario_code=eq.${encodeURIComponent(usuario)}`;
     
-    // Hacemos un PATCH (Actualización parcial)
-    hacerPeticion(url, 'PATCH', {
-        unidad: unidad,
-        // Opcional: Podrías guardar la fecha de última actividad también
-        // last_seen: new Date().toISOString() 
-    }).then(() => {
-        // console.log(`Unidad ${unidad} actualizada para ${usuario}`);
+    hacerPeticion(url, 'PATCH', updateData)
+    .then(() => {
+        console.log("Background: ✅ Datos actualizados en BD.");
+    })
+    .catch(err => {
+        console.error("Background: ❌ Error actualizando:", err);
     });
     
-    return true; // No esperamos respuesta crítica
+    return true; 
   }
 });
 

@@ -11,7 +11,8 @@ window.ProBot = {
         usuarioAutorizado: false,
         botEnabled: true,
         usuarioActual: null,
-        isPlus: false
+        isPlus: false,
+        unidadMaxima: null
     }
 };
 

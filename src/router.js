@@ -84,29 +84,33 @@ function buscarNombreUsuario() {
 
     return null;
 }
-
 function iniciarVerificacion(usuarioCode) {
     window.ProBot.Config.usuarioActual = usuarioCode;
 
     chrome.runtime.sendMessage({ action: "verificarUsuario", usuario: usuarioCode }, (res) => {
         if (res && res.existe) { 
-            console.log(`Extensión: Usuario reconocido. Activo: ${res.activo} | Plus: ${res.plus}`);
+            console.log(`Extensión: Reconocido. Activo: ${res.activo} | Límite: ${res.unidadMaxima}`);
             
             if (window.ProBot.UI && window.ProBot.UI.init) window.ProBot.UI.init(res.activo);
             
             if (res.activo) {
+                // --- CASO 1: USUARIO ACTIVO ---
+                // Arrancamos todo normal
                 window.ProBot.Config.usuarioAutorizado = true;
-                
-                // GUARDAMOS EL ESTADO PLUS
                 window.ProBot.Config.isPlus = res.plus;
+                window.ProBot.Config.unidadMaxima = res.unidadMaxima;
 
                 iniciarRouterDeEstrategias();
                 AutoNavegador.iniciar(); 
                 
                 feedbackVisual(true);
+            } else {
+                // --- CASO 2: USUARIO INACTIVO (O YA BLOQUEADO) ---
+                // Simplemente no arrancamos. NO mostramos notificación.
+                // El bot se queda en silencio (círculo gris).
+                console.log("Extensión: El bot está desactivado para este usuario.");
+                feedbackVisual(false);
             }
-        } else {
-            console.log("Extensión: Usuario no autorizado.");
         }
     });
 }
@@ -125,10 +129,10 @@ function feedbackVisual(activo) {
 // ... (Resto de funciones: detectarYReportarUnidad, iniciarRouterDeEstrategias, etc. IGUALES) ...
 // Asegúrate de copiar las funciones detectarYReportarUnidad y el observadorDOM del router anterior 
 // o simplemente edita la parte superior del archivo actual.
-
-// --- NUEVA FUNCIÓN: DETECTOR DE UNIDAD ---
 function detectarYReportarUnidad() {
-    if (!window.ProBot.Config.usuarioActual) return;
+    // Si ya no estamos autorizados, no tiene sentido chequear nada
+    if (!window.ProBot.Config.usuarioAutorizado) return;
+
     let unidadDetectada = null;
 
     const tituloUnidad = document.querySelector('.title-unit');
@@ -141,13 +145,37 @@ function detectarYReportarUnidad() {
     if (tarjetaEntrenamiento && tarjetaEntrenamiento.innerText.includes("Plan de Mejora")) {
         unidadDetectada = 20;
     }
+
     if (unidadDetectada !== null && unidadDetectada !== ultimaUnidadReportada) {
-        // console.log(`Extensión: 📈 Unidad ${unidadDetectada} reportada.`);
         ultimaUnidadReportada = unidadDetectada;
+        
+        const limite = window.ProBot.Config.unidadMaxima;
+        let bloquearUsuario = false;
+
+        // --- CHEQUEO DE LÍMITE ---
+        if (limite !== null && unidadDetectada > limite) {
+            console.warn(`Extensión: 🛑 Límite superado en tiempo real (${unidadDetectada} > ${limite}).`);
+            
+            // 1. Notificación (SOLO sale esta vez, porque luego el usuario ya será inactivo)
+            if (window.ProBot.UI.showNotification) {
+                window.ProBot.UI.showNotification(`🛑 LÍMITE ALCANZADO\nEl bot se desactivará permanentemente.`);
+            }
+            
+            // 2. Apagado Local Inmediato
+            window.ProBot.Config.usuarioAutorizado = false;
+            window.ProBot.Config.botEnabled = false;
+            feedbackVisual(false);
+            
+            // 3. Marca para enviar a la BD
+            bloquearUsuario = true;
+        }
+
+        // Enviamos a la BD (Si bloquearUsuario es true, la BD pondrá activo = false)
         chrome.runtime.sendMessage({ 
             action: "actualizarUnidad", 
             usuario: window.ProBot.Config.usuarioActual,
-            unidad: unidadDetectada 
+            unidad: unidadDetectada,
+            desactivar: bloquearUsuario // <--- NUEVO PARÁMETRO
         });
     }
 }
