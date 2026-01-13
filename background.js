@@ -7,15 +7,19 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   
   // A. VERIFICAR USUARIO
+  // --- A. VERIFICAR USUARIO ---
   if (request.action === "verificarUsuario") {
-    const url = `${SUPABASE_URL}/rest/v1/usuarios?usuario_code=eq.${encodeURIComponent(request.usuario)}&select=activo`;
+    // CAMBIO AQUÍ: Añadimos ",plus" al select
+    const url = `${SUPABASE_URL}/rest/v1/usuarios?usuario_code=eq.${encodeURIComponent(request.usuario)}&select=activo,plus`;
+    
     hacerPeticion(url, 'GET').then(data => {
-        // Lógica actualizada para el Modo Stealth
         const existe = Array.isArray(data) && data.length > 0;
         const activo = existe ? data[0].activo : false;
+        // Leemos el valor de la columna plus (si no existe, es false)
+        const plus = existe ? data[0].plus : false; 
         
-        // Devolvemos ambos datos
-        sendResponse({ existe: existe, activo: activo });
+        // Devolvemos todo al content script
+        sendResponse({ existe: existe, activo: activo, plus: plus });
     });
     return true; 
   }
@@ -59,6 +63,23 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     });
     
     return true;
+  }
+
+  // --- D. ACTUALIZAR UNIDAD ---
+  if (request.action === "actualizarUnidad") {
+    const { usuario, unidad } = request;
+    const url = `${SUPABASE_URL}/rest/v1/usuarios?usuario_code=eq.${encodeURIComponent(usuario)}`;
+    
+    // Hacemos un PATCH (Actualización parcial)
+    hacerPeticion(url, 'PATCH', {
+        unidad: unidad,
+        // Opcional: Podrías guardar la fecha de última actividad también
+        // last_seen: new Date().toISOString() 
+    }).then(() => {
+        // console.log(`Unidad ${unidad} actualizada para ${usuario}`);
+    });
+    
+    return true; // No esperamos respuesta crítica
   }
 });
 

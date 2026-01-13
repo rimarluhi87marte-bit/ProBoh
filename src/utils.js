@@ -9,7 +9,9 @@ window.ProBot = {
     UI: {},           // Interfaz visual
     Config: {
         usuarioAutorizado: false,
-          botEnabled: true
+        botEnabled: true,
+        usuarioActual: null,
+        isPlus: false
     }
 };
 
@@ -28,10 +30,10 @@ chrome.storage.onChanged.addListener((changes, namespace) => {
         window.ProBot.Config.botEnabled = changes.botEnabled.newValue;
         console.log(`Extensión: Cambio de estado -> ${window.ProBot.Config.botEnabled ? 'ON' : 'OFF'}`);
         actualizarEstadoVisual();
-        
+
         // Si se apaga, forzamos recarga para limpiar intervalos
         if (!window.ProBot.Config.botEnabled) {
-             window.location.reload();
+            window.location.reload();
         }
     }
 });
@@ -45,25 +47,25 @@ function actualizarEstadoVisual() {
 
 // --- Funciones de Ayuda ---
 
-window.ProBot.Utils.sha256 = async function(message) {
+window.ProBot.Utils.sha256 = async function (message) {
     const msgBuffer = new TextEncoder().encode(message);
     const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
     return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
 };
 
-window.ProBot.Utils.esperar = function(ms) {
+window.ProBot.Utils.esperar = function (ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 };
 
-window.ProBot.Utils.guardarEnBD = function(hash, pregunta, respuesta) {
-    chrome.runtime.sendMessage({ 
-        action: "guardarEjercicio", hash: hash, pregunta: pregunta, respuesta: respuesta 
+window.ProBot.Utils.guardarEnBD = function (hash, pregunta, respuesta) {
+    chrome.runtime.sendMessage({
+        action: "guardarEjercicio", hash: hash, pregunta: pregunta, respuesta: respuesta
     });
 };
 
-window.ProBot.Utils.procesarConsulta = function(hash, callbackExito) {
+window.ProBot.Utils.procesarConsulta = function (hash, callbackExito) {
     if (!window.ProBot.Config.usuarioAutorizado) return;
-    
+
     chrome.runtime.sendMessage({ action: "consultarEjercicio", hash: hash }, (response) => {
         if (response && response.respuesta) {
             window.ProBot.UI.setConocimiento('found');
@@ -75,12 +77,12 @@ window.ProBot.Utils.procesarConsulta = function(hash, callbackExito) {
 };
 
 // En utils.js
-window.ProBot.Utils.debug = function() {
+window.ProBot.Utils.debug = function () {
     console.group("🤖 REPORTE DE ESTADO DEL BOT");
     console.log("Usuario Autorizado:", window.ProBot.Config.usuarioAutorizado);
     console.log("Estrategia Actual:", estrategiaActual ? estrategiaActual.nombre : "Ninguna");
     console.log("HTML Detectado (Huellas):");
-    
+
     // Lista todas las estrategias y dice cuál detecta
     for (const key in window.ProBot.Estrategias) {
         const est = window.ProBot.Estrategias[key];

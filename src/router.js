@@ -1,16 +1,16 @@
 // --- src/router.js ---
-// --- src/router.js ---
 
-console.log("ProBot: Cargando Router Inteligente + Piloto Automático...");
+console.log("ProBot: Cargando Router Inteligente + Piloto Automático (Plus)...");
 
 let estrategiaActual = null; 
 let observadorDOM = null;
+let ultimaUnidadReportada = -1;
 
 // --- MÓDULO DE NAVEGACIÓN AUTOMÁTICA ---
 const AutoNavegador = {
     botonCandidato: null,
     tiempoDeteccion: 0,
-    palabrasClave: ['responder', 'continuar', 'iniciar', 'siguiente', 'comenzar', 'finalizar'],
+    palabrasClave: ['responder', 'continuar', 'iniciar', 'siguiente', 'comenzar', 'finalizar', 'ver opciones' ],
 
     iniciar: function() {
         setInterval(() => {
@@ -19,15 +19,15 @@ const AutoNavegador = {
     },
 
     buscarYClickear: function() {
-        // --- KILL SWITCH PARA EL AUTO-NAVEGADOR ---
-        // Si el bot está apagado, el piloto automático TAMBIÉN debe dormir.
-        if (!window.ProBot.Config.botEnabled) {
-            this.botonCandidato = null; // Reseteamos por seguridad
+        // --- FILTRO MAESTRO ---
+        // 1. Si el bot está apagado -> No click.
+        // 2. Si el usuario NO es Plus -> No click.
+        if (!window.ProBot.Config.botEnabled || !window.ProBot.Config.isPlus) {
+            this.botonCandidato = null; 
             return;
         }
-        // ------------------------------------------
+        // ----------------------
 
-        // 1. Buscamos posibles botones
         const posiblesBotones = document.querySelectorAll('button, input[type="button"], input[type="submit"], a.btn, div.btn, .buttton');
         let encontrado = null;
 
@@ -44,13 +44,11 @@ const AutoNavegador = {
             }
         }
 
-        // 2. Lógica del Temporizador
         if (encontrado) {
             if (encontrado === this.botonCandidato) {
                 const tiempoPasado = Date.now() - this.tiempoDeteccion;
-                
                 if (tiempoPasado >= 4600) {
-                    console.log(`Extensión: 🤖 Piloto Automático -> Click en "${encontrado.innerText || encontrado.value}"`);
+                    console.log(`Extensión: 🤖 Piloto Automático (PLUS) -> Click seguro.`);
                     encontrado.click();
                     this.botonCandidato = null; 
                     this.tiempoDeteccion = 0;
@@ -88,21 +86,20 @@ function buscarNombreUsuario() {
 }
 
 function iniciarVerificacion(usuarioCode) {
-    // Verificamos primero si está habilitado globalmente (Kill Switch)
-    // Aunque la UI y el Router tienen sus chequeos, esto evita llamadas a Supabase innecesarias si quisieras
-    // Pero por ahora lo dejamos fluir para que pinte la UI de "Apagado".
-    
+    window.ProBot.Config.usuarioActual = usuarioCode;
+
     chrome.runtime.sendMessage({ action: "verificarUsuario", usuario: usuarioCode }, (res) => {
         if (res && res.existe) { 
-            console.log(`Extensión: Usuario reconocido.`);
+            console.log(`Extensión: Usuario reconocido. Activo: ${res.activo} | Plus: ${res.plus}`);
             
-            if (window.ProBot.UI && window.ProBot.UI.init) {
-                window.ProBot.UI.init(res.activo);
-            }
+            if (window.ProBot.UI && window.ProBot.UI.init) window.ProBot.UI.init(res.activo);
             
             if (res.activo) {
                 window.ProBot.Config.usuarioAutorizado = true;
                 
+                // GUARDAMOS EL ESTADO PLUS
+                window.ProBot.Config.isPlus = res.plus;
+
                 iniciarRouterDeEstrategias();
                 AutoNavegador.iniciar(); 
                 
@@ -115,27 +112,53 @@ function iniciarVerificacion(usuarioCode) {
 }
 
 function feedbackVisual(activo) {
-    // Si está apagado, no mostramos borde verde, o mostramos borde rojo
-    if (!window.ProBot.Config.botEnabled) {
-         // Opcional: Podrías poner borde rojo si quieres indicación visual de "OFF"
-         return;
-    }
-
+    if (!window.ProBot.Config.botEnabled) return;
     const header = document.querySelector('.headermain') || document.querySelector('header');
-    if (header && activo) header.style.borderBottom = '4px solid #00ff00';
+    
+    if (header && activo) {
+        // Detalle visual extra: Borde Dorado si es Plus, Verde si es Normal
+        const color = window.ProBot.Config.isPlus ? '#f1c40f' : '#00ff00';
+        header.style.borderBottom = `4px solid ${color}`;
+    }
 }
 
-// --- 2. EL OBSERVADOR PRINCIPAL ---
+// ... (Resto de funciones: detectarYReportarUnidad, iniciarRouterDeEstrategias, etc. IGUALES) ...
+// Asegúrate de copiar las funciones detectarYReportarUnidad y el observadorDOM del router anterior 
+// o simplemente edita la parte superior del archivo actual.
+
+// --- NUEVA FUNCIÓN: DETECTOR DE UNIDAD ---
+function detectarYReportarUnidad() {
+    if (!window.ProBot.Config.usuarioActual) return;
+    let unidadDetectada = null;
+
+    const tituloUnidad = document.querySelector('.title-unit');
+    if (tituloUnidad) {
+        const texto = tituloUnidad.innerText.trim(); 
+        const match = texto.match(/\d+/); 
+        if (match) unidadDetectada = parseInt(match[0]);
+    }
+    const tarjetaEntrenamiento = document.querySelector('#Entrenamiento .title');
+    if (tarjetaEntrenamiento && tarjetaEntrenamiento.innerText.includes("Plan de Mejora")) {
+        unidadDetectada = 20;
+    }
+    if (unidadDetectada !== null && unidadDetectada !== ultimaUnidadReportada) {
+        // console.log(`Extensión: 📈 Unidad ${unidadDetectada} reportada.`);
+        ultimaUnidadReportada = unidadDetectada;
+        chrome.runtime.sendMessage({ 
+            action: "actualizarUnidad", 
+            usuario: window.ProBot.Config.usuarioActual,
+            unidad: unidadDetectada 
+        });
+    }
+}
+
 function iniciarRouterDeEstrategias() {
     const targetNode = document.body;
     const config = { childList: true, subtree: true, attributes: true, attributeFilter: ['class', 'style'] }; 
 
     const escanear = () => {
-        // --- KILL SWITCH PARA ESTRATEGIAS ---
-        if (!window.ProBot.Config.botEnabled) {
-            return; 
-        }
-        // ------------------------------------
+        if (!window.ProBot.Config.botEnabled) return;
+        detectarYReportarUnidad();
 
         const ListaEstrategias = window.ProBot.Estrategias;
         let estrategiaEncontrada = null;
@@ -148,7 +171,6 @@ function iniciarRouterDeEstrategias() {
                 if (est.validar && typeof est.validar === 'function') {
                     if (!est.validar(elementoHuella)) continue;
                 }
-                
                 estrategiaEncontrada = est;
                 break;
             }

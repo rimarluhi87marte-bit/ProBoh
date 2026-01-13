@@ -1,7 +1,9 @@
 // --- Multitasking recordar texto y hacer matematica ---
+// --- src/strategies/multitask-math.js ---
+// --- src/strategies/multitask-math.js ---
 
 window.ProBot.Estrategias.MULTITAREA_MATEMATICA = {
-    nombre: "Multitarea (Math + Texto + Quiz)",
+    nombre: "Multitarea (Math + Visual + Texto)",
     huella: '#contenedor-actividad', 
     
     // Variables Texto
@@ -10,12 +12,16 @@ window.ProBot.Estrategias.MULTITAREA_MATEMATICA = {
     // Variables Cálculo
     ultimaEcuacionResuelta: "", 
     
+    // Variables Visual (Puntos/Números/Letras)
+    ultimaHuellaVisual: "", // Antes solo guardaba el objetivo, ahora guarda TODO
+    procesandoVisual: false,
+
     // Variables Pregunta
     preguntaHashActual: "",
     textoPregunta: "",
     enFaseRespuesta: false,
     procesadoPregunta: false,
-    yaAprendido: false, // Nueva bandera para no guardar 50 veces lo mismo
+    yaAprendido: false,
     
     intervaloScanner: null,
 
@@ -24,12 +30,14 @@ window.ProBot.Estrategias.MULTITAREA_MATEMATICA = {
 
         if (this.intervaloScanner) return;
 
-        console.log("Extensión: 🧠 Monitor Multitarea (Aprendizaje Activo)...");
+        console.log("Extensión: 🧠 Monitor Multitarea (Visual Dinámico) Activo...");
         this.bufferTexto = "";
         this.ultimaEcuacionResuelta = "";
+        this.ultimaHuellaVisual = "";
         this.enFaseRespuesta = false;
         this.procesadoPregunta = false;
         this.yaAprendido = false;
+        this.procesandoVisual = false;
 
         this.intervaloScanner = setInterval(() => {
             this.ciclo();
@@ -37,30 +45,19 @@ window.ProBot.Estrategias.MULTITAREA_MATEMATICA = {
     },
 
     ciclo: function() {
-        // --- 1. APRENDIZAJE CONSTANTE (Prioridad) ---
-        // Buscamos activamente si hay una respuesta marcada en pantalla (Correcta o Chivada)
+        // 1. APRENDIZAJE CONSTANTE
         const respuestaMarcada = document.querySelector('.alrededor.correcto, .alrededor.resaltar-correcta');
-        
         if (respuestaMarcada && !this.yaAprendido && this.preguntaHashActual) {
-            // Extraemos el texto
             const span = respuestaMarcada.querySelector('.zelda-texto span');
             if (span) {
-                const respuestaTexto = span.innerText.trim().replace(/\.$/, ""); // Limpieza
-                
-                console.log(`Extensión: 🎓 ¡CAPTURA EXITOSA! Guardando: "${respuestaTexto}"`);
+                const respuestaTexto = span.innerText.trim().replace(/\.$/, "");
                 window.ProBot.UI.setAccion('learning');
-                
-                window.ProBot.Utils.guardarEnBD(
-                    this.preguntaHashActual,
-                    this.textoPregunta,
-                    respuestaTexto
-                );
-                
-                this.yaAprendido = true; // Bloqueamos para no repetir
+                window.ProBot.Utils.guardarEnBD(this.preguntaHashActual, this.textoPregunta, respuestaTexto);
+                this.yaAprendido = true;
             }
         }
 
-        // --- 2. DETECTAR FASE DE PREGUNTA ---
+        // 2. DETECTAR FASE DE PREGUNTA
         const seccionPregunta = document.querySelector('.seccion-pregunta');
         const esFasePregunta = seccionPregunta && 
                                window.getComputedStyle(seccionPregunta).display !== 'none' &&
@@ -71,18 +68,15 @@ window.ProBot.Estrategias.MULTITAREA_MATEMATICA = {
                 this.enFaseRespuesta = true;
                 this.gestionarPregunta(seccionPregunta);
             }
-            // NO hacemos return aquí, para permitir que el código de arriba (Aprendizaje)
-            // siga corriendo mientras la pregunta está visible.
         } else {
-            // Si la pregunta desapareció, reseteamos para la siguiente
             if (this.enFaseRespuesta) {
                 this.enFaseRespuesta = false;
                 this.procesadoPregunta = false;
-                this.yaAprendido = false; // Importante: Listos para aprender la siguiente
+                this.yaAprendido = false;
             }
         }
 
-        // --- 3. TAREA TEXTO (Izquierda) ---
+        // 3. TAREA TEXTO
         const spansTexto = document.querySelectorAll('.seccion-lectura .mostrar');
         spansTexto.forEach(span => {
             const texto = span.innerText.trim();
@@ -92,14 +86,106 @@ window.ProBot.Estrategias.MULTITAREA_MATEMATICA = {
             }
         });
 
-        // --- 4. TAREA CÁLCULO (Derecha) ---
+        // 4. TAREA DERECHA
+        // A. Cálculo
         const contenedorOp = document.querySelector('.contenedor-operaciones');
         if (contenedorOp && contenedorOp.style.display !== 'none') {
             this.gestionarCalculo(contenedorOp);
         }
+
+        // B. Visual
+        const contenedoresVisuales = [
+            document.querySelector('.contenedor-puntos'),
+            document.querySelector('.contenedor-numeros'),
+            document.querySelector('.contenedor-letras')
+        ];
+
+        const visualActivo = contenedoresVisuales.find(c => c && c.style.display !== 'none');
+        if (visualActivo) {
+            this.gestionarVisual(visualActivo);
+        } else {
+            // Si no hay visual activo, reseteamos la huella para estar listos
+            this.ultimaHuellaVisual = "";
+            this.procesandoVisual = false;
+        }
     },
 
-    // ... (gestionarCalculo y aplicarOperadores IGUAL QUE ANTES) ...
+    // ==========================================
+    //           LÓGICA VISUAL MEJORADA
+    // ==========================================
+    gestionarVisual: async function(contenedor) {
+        if (this.procesandoVisual) return;
+
+        // 1. Identificar Objetivo
+        const objetivoSpan = contenedor.querySelector('h2 span');
+        if (!objetivoSpan) return;
+
+        let objetivoStr = "";
+        let tipoBusqueda = "";
+
+        if (objetivoSpan.className.includes('circuloo-buscar')) {
+            objetivoStr = objetivoSpan.className; // Ej: "circuloo-buscar azul"
+            tipoBusqueda = 'clase';
+        } else {
+            objetivoStr = objetivoSpan.innerText.trim(); // Ej: "5"
+            tipoBusqueda = 'texto';
+        }
+
+        // 2. GENERAR HUELLA DEL TABLERO (Para detectar cambios de ronda con mismo objetivo)
+        // Leemos los primeros 5 elementos del grid para ver si cambiaron de posición
+        const cuadrosMuestra = Array.from(contenedor.querySelectorAll('.grid-puntos .cuadro span')).slice(0, 5);
+        const firmaTablero = cuadrosMuestra.map(el => el.className + el.innerText).join('|');
+
+        // Huella Única = Objetivo + Estado del Tablero
+        const huellaTotal = `${objetivoStr}__${firmaTablero}`;
+
+        // Si es exactamente la misma situación que ya resolvimos, salimos
+        if (huellaTotal === this.ultimaHuellaVisual) return;
+
+        // --- NUEVA RONDA DETECTADA ---
+        this.procesandoVisual = true;
+        this.ultimaHuellaVisual = huellaTotal;
+        window.ProBot.UI.setAccion('executing');
+
+        console.log(`Extensión: 👁️ Nueva ronda visual: ${objetivoStr}`);
+        
+        await window.ProBot.Utils.esperar(500); 
+
+        const cuadros = contenedor.querySelectorAll('.grid-puntos .cuadro');
+        let clicks = 0;
+
+        for (let cuadro of cuadros) {
+            const spanItem = cuadro.querySelector('span');
+            if (!spanItem) continue;
+
+            let esObjetivo = false;
+
+            if (tipoBusqueda === 'clase') {
+                const colorObjetivo = objetivoStr.split(' ').pop(); 
+                if (spanItem.classList.contains(colorObjetivo)) {
+                    esObjetivo = true;
+                }
+            } else {
+                if (spanItem.innerText.trim() === objetivoStr) {
+                    esObjetivo = true;
+                }
+            }
+
+            if (esObjetivo) {
+                cuadro.click();
+                clicks++;
+                await window.ProBot.Utils.esperar(100); 
+            }
+        }
+
+        console.log(`Extensión: ✅ Visual completado (${clicks} aciertos).`);
+        window.ProBot.UI.setAccion('idle');
+        this.procesandoVisual = false;
+    },
+
+    // ==========================================
+    //           LÓGICA MATEMÁTICAS
+    // ==========================================
     gestionarCalculo: async function(contenedor) {
         const spans = contenedor.querySelectorAll('.row-operacion > span');
         if (spans.length < 4) return;
@@ -156,7 +242,7 @@ window.ProBot.Estrategias.MULTITAREA_MATEMATICA = {
     },
 
     // ==========================================
-    //           LÓGICA DE PREGUNTAS
+    //           LÓGICA PREGUNTAS
     // ==========================================
     gestionarPregunta: function(seccionPregunta) {
         const tituloEl = seccionPregunta.querySelector('.contenedor-titulo');
@@ -164,16 +250,14 @@ window.ProBot.Estrategias.MULTITAREA_MATEMATICA = {
 
         const texto = tituloEl.innerText.trim();
         
-        // Generar hash de la pregunta actual
         window.ProBot.Utils.sha256(texto).then(hash => {
             if (hash !== this.preguntaHashActual) {
                 console.log("Extensión: 🧠 Pregunta detectada.");
                 this.preguntaHashActual = hash;
                 this.textoPregunta = texto;
                 this.procesadoPregunta = false;
-                this.yaAprendido = false; // Reset para esta nueva pregunta
+                this.yaAprendido = false; 
                 
-                // Consultar BD
                 window.ProBot.Utils.procesarConsulta(hash, (respuesta) => {
                     this.responderPregunta(respuesta);
                 });

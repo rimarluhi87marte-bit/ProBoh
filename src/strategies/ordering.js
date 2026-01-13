@@ -1,4 +1,5 @@
 // --- Completar las frases de las columnas ---
+// --- src/strategies/ordering.js ---
 
 window.ProBot.Estrategias.ORDENAMIENTO_COLUMNAS = {
     nombre: "Ordenar Frases",
@@ -8,9 +9,9 @@ window.ProBot.Estrategias.ORDENAMIENTO_COLUMNAS = {
 
     iniciar: async function() {
         if (this.procesado) return;
-        console.log("Extensión: ⏳ Esperando carga...");
-        let intentos = 0; let cargado = false; let columnasDOM = [];
         
+        // Espera de carga
+        let intentos = 0; let cargado = false; let columnasDOM = [];
         while (!cargado && intentos < 20) { 
             columnasDOM = document.querySelectorAll('.columna-frase');
             const cajas = document.querySelectorAll('.boton-caja');
@@ -26,9 +27,18 @@ window.ProBot.Estrategias.ORDENAMIENTO_COLUMNAS = {
         for (let i = 0; i < columnasDOM.length; i++) {
             const cajas = columnasDOM[i].querySelectorAll('.boton-caja');
             if (cajas.length < 2) continue; 
+            
+            // Texto limpio
             const inicio = cajas[0].innerText.trim();
             const fin = cajas[cajas.length - 1].innerText.trim();
-            mapaTablero.push({ index: i, inicio: inicio, fin: fin, clave: `${inicio}...${fin}`, columnaDOM: columnasDOM[i] });
+            
+            mapaTablero.push({ 
+                index: i, 
+                inicio: inicio, 
+                fin: fin, 
+                clave: `${inicio}...${fin}`, 
+                columnaDOM: columnasDOM[i] 
+            });
         }
         await this.resolverSecuencia(mapaTablero, columnasDOM);
     },
@@ -39,7 +49,6 @@ window.ProBot.Estrategias.ORDENAMIENTO_COLUMNAS = {
             const colData = mapaTablero[i];
             const hash = await window.ProBot.Utils.sha256(colData.clave);
             
-            // Consultamos manualmente para no depender del callback simple
             const data = await new Promise(resolve => {
                 chrome.runtime.sendMessage({ action: "consultarEjercicio", hash: hash }, resolve);
             });
@@ -97,29 +106,57 @@ window.ProBot.Estrategias.ORDENAMIENTO_COLUMNAS = {
 
     aprender: function() {
         if (this.yaAprendido) return; 
-        const tablaDiv = document.querySelector('.contenedor-caja-resultado');
-        if (!tablaDiv || tablaDiv.offsetParent === null) return;
+
+        // Buscamos el contenedor VISIBLE
+        const contenedoresResultado = document.querySelectorAll('.contenedor-caja-resultado');
+        let tablaDiv = null;
+        
+        for (let c of contenedoresResultado) {
+            if (c.offsetParent !== null) {
+                tablaDiv = c;
+                break;
+            }
+        }
+
+        if (!tablaDiv) return; // Si no hay visible, seguimos intentando en el siguiente ciclo
         
         const tabla = tablaDiv.querySelector('table tbody');
         if (!tabla) return;
         
-        window.ProBot.UI.setAccion('learning'); 
         const filas = tabla.querySelectorAll('tr');
+        let frasesGuardadas = 0;
+
         filas.forEach(fila => {
-            const celdaSolucion = fila.querySelectorAll('td')[1]; 
-            if (celdaSolucion) {
-                const spansPalabra = celdaSolucion.querySelectorAll('.palabra');
+            // Buscamos la columna de solución (índice 1)
+            const celdas = fila.querySelectorAll('td');
+            if (celdas.length < 2) return;
+            
+            const celdaSolucion = celdas[1];
+            const spansPalabra = celdaSolucion.querySelectorAll('.palabra');
+            
+            if (spansPalabra.length > 0) {
                 const palabrasArray = Array.from(spansPalabra).map(s => s.innerText.trim());
                 const fraseLimpia = palabrasArray.join(' '); 
-                if (palabrasArray.length < 2) return;
-                const primera = palabrasArray[0];
-                const ultima = palabrasArray[palabrasArray.length - 1];
-                const clavePregunta = `${primera}...${ultima}`; 
-                window.ProBot.Utils.sha256(clavePregunta).then(hash => { 
-                    window.ProBot.Utils.guardarEnBD(hash, clavePregunta, fraseLimpia); 
-                });
+
+                if (palabrasArray.length >= 2) {
+                    const primera = palabrasArray[0];
+                    const ultima = palabrasArray[palabrasArray.length - 1];
+                    const clavePregunta = `${primera}...${ultima}`; 
+                    
+                    console.log(`Extensión: 🎓 Aprendiendo: [${clavePregunta}]`);
+                    
+                    window.ProBot.Utils.sha256(clavePregunta).then(hash => { 
+                        window.ProBot.Utils.guardarEnBD(hash, clavePregunta, fraseLimpia); 
+                    });
+                    
+                    frasesGuardadas++;
+                }
             }
         });
-        this.yaAprendido = true;
+
+        if (frasesGuardadas > 0) {
+            window.ProBot.UI.setAccion('learning'); 
+            this.yaAprendido = true; // Solo bloqueamos si tuvimos éxito
+        }
     }
 };
