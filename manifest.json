@@ -54,6 +54,7 @@
         "src/strategies/number-match.js",
         "src/strategies/memory-grid.js", // .contenedor-grid
         "src/strategies/memory-grid-change.js",
+        "src/strategies/memory-order.js",
         "src/strategies/memory-letters.js", // .cartas-container
         "src/strategies/sliding.js", // #contenedorIconosMostrar
         "src/strategies/form-filling.js", // #contenedor-interno

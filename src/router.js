@@ -1,6 +1,6 @@
 // --- src/router.js ---
 
-console.log("ProBot: Cargando Router Inteligente + Piloto Automático (Plus)...");
+console.log("ProBot: Cargando Router Inteligente + Piloto Automático (Velocidad Variable)...");
 
 let estrategiaActual = null; 
 let observadorDOM = null;
@@ -10,26 +10,27 @@ let ultimaUnidadReportada = -1;
 const AutoNavegador = {
     botonCandidato: null,
     tiempoDeteccion: 0,
-    palabrasClave: ['responder', 'continuar', 'iniciar', 'siguiente', 'comenzar', 'finalizar', 'ver opciones' ],
+    
+    // Separamos las palabras clave por categoría de velocidad
+    palabrasRapidas: [ 'iniciar', 'siguiente', 'comenzar', 'finalizar', 'ver opciones'],
+    palabrasLentas: ['responder', 'continuar'], // Este requiere más cuidado o intervención humana
 
     iniciar: function() {
         setInterval(() => {
             this.buscarYClickear();
-        }, 500);
+        }, 200); // Escáner más frecuente para detectar los rápidos
     },
 
     buscarYClickear: function() {
         // --- FILTRO MAESTRO ---
-        // 1. Si el bot está apagado -> No click.
-        // 2. Si el usuario NO es Plus -> No click.
         if (!window.ProBot.Config.botEnabled || !window.ProBot.Config.isPlus) {
             this.botonCandidato = null; 
             return;
         }
-        // ----------------------
 
         const posiblesBotones = document.querySelectorAll('button, input[type="button"], input[type="submit"], a.btn, div.btn, .buttton');
         let encontrado = null;
+        let tipoVelocidad = 'lento'; // Por defecto lento para seguridad
 
         for (let btn of posiblesBotones) {
             if (btn.offsetParent === null || btn.disabled || btn.classList.contains('disabled') || window.getComputedStyle(btn).opacity < 0.5) {
@@ -38,22 +39,38 @@ const AutoNavegador = {
 
             const texto = (btn.innerText || btn.value || "").toLowerCase().trim();
             
-            if (this.palabrasClave.some(palabra => texto.includes(palabra))) {
+            // Verificamos si es rápido
+            if (this.palabrasRapidas.some(p => texto.includes(p))) {
                 encontrado = btn;
+                tipoVelocidad = 'rapido';
                 break; 
+            }
+            
+            // Verificamos si es lento (Responder)
+            if (this.palabrasLentas.some(p => texto.includes(p))) {
+                encontrado = btn;
+                tipoVelocidad = 'lento';
+                break;
             }
         }
 
         if (encontrado) {
+            // Definir el tiempo de espera según el tipo
+            // Rápido: 500ms (casi instantáneo pero humano)
+            // Lento: 4600ms (tiempo de lectura/seguridad)
+            const tiempoEspera = (tipoVelocidad === 'rapido') ? 500 : 4600;
+
             if (encontrado === this.botonCandidato) {
                 const tiempoPasado = Date.now() - this.tiempoDeteccion;
-                if (tiempoPasado >= 4600) {
-                    console.log(`Extensión: 🤖 Piloto Automático (PLUS) -> Click seguro.`);
+                
+                if (tiempoPasado >= tiempoEspera) {
+                    console.log(`Extensión: 🤖 AutoClick (${tipoVelocidad}) -> "${encontrado.innerText || encontrado.value}"`);
                     encontrado.click();
                     this.botonCandidato = null; 
                     this.tiempoDeteccion = 0;
                 }
             } else {
+                // Nuevo botón detectado
                 this.botonCandidato = encontrado;
                 this.tiempoDeteccion = Date.now();
             }
@@ -63,6 +80,9 @@ const AutoNavegador = {
         }
     }
 };
+
+// ... (Resto del archivo: iniciarVerificacion, feedbackVisual, detectarYReportarUnidad, iniciarRouterDeEstrategias IGUAL) ...
+// Asegúrate de mantener el resto del código que ya tenías funcionando.
 
 // --- 1. INICIO Y AUTENTICACIÓN ---
 const intervaloCarga = setInterval(() => {
@@ -84,6 +104,7 @@ function buscarNombreUsuario() {
 
     return null;
 }
+
 function iniciarVerificacion(usuarioCode) {
     window.ProBot.Config.usuarioActual = usuarioCode;
 
@@ -94,8 +115,6 @@ function iniciarVerificacion(usuarioCode) {
             if (window.ProBot.UI && window.ProBot.UI.init) window.ProBot.UI.init(res.activo);
             
             if (res.activo) {
-                // --- CASO 1: USUARIO ACTIVO ---
-                // Arrancamos todo normal
                 window.ProBot.Config.usuarioAutorizado = true;
                 window.ProBot.Config.isPlus = res.plus;
                 window.ProBot.Config.unidadMaxima = res.unidadMaxima;
@@ -105,9 +124,6 @@ function iniciarVerificacion(usuarioCode) {
                 
                 feedbackVisual(true);
             } else {
-                // --- CASO 2: USUARIO INACTIVO (O YA BLOQUEADO) ---
-                // Simplemente no arrancamos. NO mostramos notificación.
-                // El bot se queda en silencio (círculo gris).
                 console.log("Extensión: El bot está desactivado para este usuario.");
                 feedbackVisual(false);
             }
@@ -120,17 +136,12 @@ function feedbackVisual(activo) {
     const header = document.querySelector('.headermain') || document.querySelector('header');
     
     if (header && activo) {
-        // Detalle visual extra: Borde Dorado si es Plus, Verde si es Normal
         const color = window.ProBot.Config.isPlus ? '#f1c40f' : '#00ff00';
         header.style.borderBottom = `4px solid ${color}`;
     }
 }
 
-// ... (Resto de funciones: detectarYReportarUnidad, iniciarRouterDeEstrategias, etc. IGUALES) ...
-// Asegúrate de copiar las funciones detectarYReportarUnidad y el observadorDOM del router anterior 
-// o simplemente edita la parte superior del archivo actual.
 function detectarYReportarUnidad() {
-    // Si ya no estamos autorizados, no tiene sentido chequear nada
     if (!window.ProBot.Config.usuarioAutorizado) return;
 
     let unidadDetectada = null;
@@ -152,30 +163,24 @@ function detectarYReportarUnidad() {
         const limite = window.ProBot.Config.unidadMaxima;
         let bloquearUsuario = false;
 
-        // --- CHEQUEO DE LÍMITE ---
         if (limite !== null && unidadDetectada > limite) {
-            console.warn(`Extensión: 🛑 Límite superado en tiempo real (${unidadDetectada} > ${limite}).`);
+            console.warn(`Extensión: 🛑 Límite superado (${unidadDetectada} > ${limite}).`);
             
-            // 1. Notificación (SOLO sale esta vez, porque luego el usuario ya será inactivo)
             if (window.ProBot.UI.showNotification) {
                 window.ProBot.UI.showNotification(`🛑 LÍMITE ALCANZADO\nEl bot se desactivará permanentemente.`);
             }
             
-            // 2. Apagado Local Inmediato
             window.ProBot.Config.usuarioAutorizado = false;
             window.ProBot.Config.botEnabled = false;
             feedbackVisual(false);
-            
-            // 3. Marca para enviar a la BD
             bloquearUsuario = true;
         }
 
-        // Enviamos a la BD (Si bloquearUsuario es true, la BD pondrá activo = false)
         chrome.runtime.sendMessage({ 
             action: "actualizarUnidad", 
             usuario: window.ProBot.Config.usuarioActual,
             unidad: unidadDetectada,
-            desactivar: bloquearUsuario // <--- NUEVO PARÁMETRO
+            desactivar: bloquearUsuario 
         });
     }
 }

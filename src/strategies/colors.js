@@ -1,4 +1,5 @@
 // --- Relacionar definiciones y palbras por colores ---
+// --- src/strategies/colors.js ---
 
 window.ProBot.Estrategias.ASOCIACION_COLORES = {
     nombre: "Asociar Colores",
@@ -14,8 +15,6 @@ window.ProBot.Estrategias.ASOCIACION_COLORES = {
 
         console.log(`Extensión: 🎨 Escaneando ${cuadros.length} definiciones...`);
         
-        // REGLA DE SEGURIDAD: Solo reseteamos si está vacío o si es un nuevo ejercicio real
-        // Esto evita borrar lo que ya sabemos si el router parpadea
         if (this.mapaDefiniciones.length === 0) {
             this.mapaDefiniciones = [];
             for (let cuadro of cuadros) {
@@ -41,23 +40,65 @@ window.ProBot.Estrategias.ASOCIACION_COLORES = {
 
     resolver: async function() {
         let algunoSabido = false;
+        const palabrasUsadas = new Set(); // Guardaremos las palabras que ya conectamos
         
-        // Protección extra: Si el mapa está vacío, intentamos llenarlo de nuevo
         if (this.mapaDefiniciones.length === 0) await this.iniciar();
 
+        // 1. RESOLVER LO QUE SABEMOS POR BD
         for (let def of this.mapaDefiniciones) {
-            if (def.resuelto) continue;
+            if (def.resuelto) {
+                // Si ya estaba resuelto de antes, intentamos recuperar qué palabra fue 
+                // (esto es difícil sin guardar estado, pero asumimos flujo normal)
+                continue;
+            }
             
-            // Consultamos DB
             const data = await new Promise(resolve => {
                 chrome.runtime.sendMessage({ action: "consultarEjercicio", hash: def.hash }, resolve);
             });
 
             if (data && data.respuesta) {
                 algunoSabido = true;
-                console.log(`Extensión: 💡 Respuesta conocida: "${data.respuesta}"`); // LOG RECUPERADO
+                console.log(`Extensión: 💡 Respuesta conocida: "${data.respuesta}"`);
+                
                 await this.conectarPalabraConColor(data.respuesta, def.color);
+                
                 def.resuelto = true; 
+                palabrasUsadas.add(data.respuesta.trim()); // Marcamos palabra como usada
+            }
+        }
+
+        // 2. LÓGICA DE DESCARTE (La última pieza del puzzle)
+        // Filtramos cuántas definiciones faltan por resolver
+        const definicionesFaltantes = this.mapaDefiniciones.filter(d => !d.resuelto);
+
+        if (definicionesFaltantes.length === 1) {
+            console.log("Extensión: 🕵️ Intentando deducción por descarte...");
+            
+            // Obtenemos todos los botones de palabras disponibles
+            const botones = document.querySelectorAll('.dropdownc-toggle');
+            let palabraSobrante = null;
+            let conteoSobrantes = 0;
+
+            for (let btn of botones) {
+                const textoBtn = btn.innerText.trim();
+                
+                // Si esta palabra NO está en la lista de las que acabamos de usar
+                if (!palabrasUsadas.has(textoBtn)) {
+                    palabraSobrante = textoBtn;
+                    conteoSobrantes++;
+                }
+            }
+
+            // Si solo sobra exactamente UNA palabra y falta UNA definición
+            if (conteoSobrantes === 1 && palabraSobrante) {
+                const defFinal = definicionesFaltantes[0];
+                console.log(`Extensión: 🧠 Deducción: "${palabraSobrante}" va con el color restante.`);
+                
+                await this.conectarPalabraConColor(palabraSobrante, defFinal.color);
+                
+                // No marcamos como 'resuelto' ni guardamos en BD aquí.
+                // Dejamos que la función 'aprender' lo capture cuando se ponga verde,
+                // así nos aseguramos de que la deducción fue correcta antes de ensuciar la BD.
             }
         }
 
@@ -89,7 +130,7 @@ window.ProBot.Estrategias.ASOCIACION_COLORES = {
                 const colorOpcion = this.normalizarColor(opcion.style.backgroundColor);
                 if (colorOpcion === colorObjetivo) {
                     opcion.click();
-                    console.log(`Extensión: 🖌️ Coloreando "${palabraTexto}"`); // LOG RECUPERADO
+                    console.log(`Extensión: 🖌️ Coloreando "${palabraTexto}"`);
                     await window.ProBot.Utils.esperar(10);
                     break;
                 }
@@ -99,7 +140,6 @@ window.ProBot.Estrategias.ASOCIACION_COLORES = {
     },
 
     aprender: function() {
-        // Protección: Si no hemos escaneado definiciones, no podemos aprender
         if (!this.mapaDefiniciones || this.mapaDefiniciones.length === 0) return;
 
         const botones = document.querySelectorAll('.dropdownc-toggle.correcto');
@@ -113,7 +153,7 @@ window.ProBot.Estrategias.ASOCIACION_COLORES = {
             const definicionMatch = this.mapaDefiniciones.find(def => def.color === colorGanador);
 
             if (definicionMatch) {
-                console.log(`Extensión: 🎓 APRENDIDO: "${palabra}"`); // LOG CRÍTICO RECUPERADO
+                console.log(`Extensión: 🎓 APRENDIDO: "${palabra}"`);
                 
                 window.ProBot.UI.setAccion('learning');
                 window.ProBot.Utils.guardarEnBD(definicionMatch.hash, definicionMatch.texto, palabra);

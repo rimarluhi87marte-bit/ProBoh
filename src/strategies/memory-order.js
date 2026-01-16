@@ -1,5 +1,4 @@
-// --- Recordar la secuencia de palabras ---
-// --- src/strategies/memory-order.js ---
+// --- Hacer clic a la figura que te pidan ---
 
 window.ProBot.Estrategias.MEMORIA_ORDEN = {
     nombre: "Memoria Orden (Posiciones)",
@@ -81,6 +80,8 @@ window.ProBot.Estrategias.MEMORIA_ORDEN = {
         window.ProBot.UI.setAccion('executing');
 
         console.log("Extensión: 🛑 Fase Respuesta. Esperando 1.2s...");
+        
+        // --- DELAY DE SEGURIDAD (1200ms para asegurar >800ms) ---
         await window.ProBot.Utils.esperar(1200);
 
         // 1. ¿QUÉ ICONO PIDEN?
@@ -92,9 +93,11 @@ window.ProBot.Estrategias.MEMORIA_ORDEN = {
         const titulo = cajaTexto.querySelector('h3').innerText.toLowerCase();
         let indiceArray = -1; 
 
+        // Chequeo especial para "Última"
         if (titulo.includes("última") || titulo.includes("ultima")) {
             indiceArray = "LAST";
         } else {
+            // Chequeo estándar ordinal
             for (const [palabra, numero] of Object.entries(this.mapaOrdinales)) {
                 if (titulo.includes(palabra)) {
                     indiceArray = numero;
@@ -107,37 +110,37 @@ window.ProBot.Estrategias.MEMORIA_ORDEN = {
         const historial = this.registroApariciones[huellaObjetivo];
 
         if (historial && historial.length > 0) {
+            
+            // Calculamos la posición real a buscar
             let posicionEnGrid = -1;
 
             if (indiceArray === "LAST") {
+                // Sacamos el último elemento del array
                 posicionEnGrid = historial[historial.length - 1];
+                console.log(`Extensión: 🧠 Buscando la ÚLTIMA aparición (Total: ${historial.length}).`);
             } else if (indiceArray !== -1 && historial.length > indiceArray) {
+                // Sacamos el índice específico
                 posicionEnGrid = historial[indiceArray];
+                console.log(`Extensión: 🧠 Buscando la aparición #${indiceArray + 1}.`);
             }
 
+            // Ejecutar Click
             if (posicionEnGrid !== -1) {
                 const cuadros = document.querySelectorAll('.contenedor-cuadricula .cuadro');
-                const celdaObjetivo = cuadros[posicionEnGrid];
-
-                if (celdaObjetivo) {
-                    console.log(`Extensión: 🎯 Click en celda ${posicionEnGrid} (Contenedor Padre).`);
+                if (cuadros[posicionEnGrid]) {
+                    console.log(`Extensión: 🎯 Click en celda ${posicionEnGrid}.`);
+                    cuadros[posicionEnGrid].click();
                     
-                    // --- CLIC ROBUSTO EN EL PADRE ---
-                    // 1. Simulamos mousedown (muchos juegos reaccionan al presionar, no al soltar)
-                    celdaObjetivo.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
-                    
-                    // 2. Simulamos el click estándar en el cuadro
-                    celdaObjetivo.click();
-
-                    // Nota: Ya NO hacemos click en el hijo <i> para evitar conflictos
+                    const i = cuadros[posicionEnGrid].querySelector('i');
+                    if (i) i.click();
                 }
             } else {
-                console.warn(`Extensión: ⚠️ Índice fuera de rango.`);
+                console.warn(`Extensión: ⚠️ Índice fuera de rango en memoria.`);
             }
 
         } else {
             console.warn(`Extensión: ⚠️ No tengo registro de este icono.`);
-            this.enFaseRespuesta = false; 
+            this.enFaseRespuesta = false; // Reintentar
         }
 
         window.ProBot.UI.setAccion('idle');
