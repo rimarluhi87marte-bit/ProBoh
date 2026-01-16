@@ -1,85 +1,92 @@
 // Recordar la secuencia de numeros ---
+// --- src/strategies/number-drag.js ---
 
 window.ProBot.Estrategias.MEMORIA_NUMEROS_ARRASTRE = {
-    nombre: "Secuencia Números (Arrastre)",
-    huella: '#etiquetaNumeros', // El span con los números
+    nombre: "Secuencia Números (Trigger Borde)",
+    huella: '#etiquetaNumeros', 
     
-    secuenciaMemorizada: [], // Array de caracteres ['8', '9', '7'...]
+    secuenciaMemorizada: [], 
     intervaloScanner: null,
     enFaseRespuesta: false,
-    ultimaSecuenciaVista: "",
+    
+    // Variable para rastrear el cambio de color
+    ultimoColorBorde: "", 
 
     iniciar: function() {
         window.ProBot.UI.setConocimiento('found');
 
         if (this.intervaloScanner) return;
 
-        console.log("Extensión: 🔢 Monitor de Arrastre Numérico Activo...");
-        this.secuenciaMemorizada = [];
-        this.enFaseRespuesta = false;
-        this.ultimaSecuenciaVista = "";
+        console.log("Extensión: 🔢 Monitor de Números (Color Borde) Activo...");
+        this.resetEstado();
 
+        // Escáner muy rápido para no perderse cambios de color
         this.intervaloScanner = setInterval(() => {
             this.ciclo();
-        }, 100);
+        }, 30);
+    },
+
+    resetEstado: function() {
+        this.secuenciaMemorizada = [];
+        this.enFaseRespuesta = false;
+        this.ultimoColorBorde = "";
     },
 
     ciclo: function() {
         // 1. DETECTAR FASE DE RESPUESTA
         const pantallaPausa = document.getElementById('pantallaPausa');
         
-        // Si la pantalla de pausa (respuesta) es visible
         if (pantallaPausa && pantallaPausa.style.display !== 'none') {
             if (!this.enFaseRespuesta) {
-                // Solo ejecutamos si tenemos datos
                 if (this.secuenciaMemorizada.length > 0) {
-                    this.resolver();
+                    this.resolver(pantallaPausa);
                 }
             }
-            return; // Dejamos de memorizar
+            return; 
         }
 
-        // 2. FASE DE MEMORIZACIÓN
-        this.enFaseRespuesta = false; 
+        // 2. FASE DE MEMORIZACIÓN (Disparada por el Borde)
+        const contenedorTabla = document.getElementById('contenedorNumeros');
         const etiqueta = document.getElementById('etiquetaNumeros');
         
-        if (etiqueta) {
-            const textoCompleto = etiqueta.innerText.trim();
-            
-            // Si hay texto y es diferente al último procesado (o es una nueva ronda)
-            if (textoCompleto.length > 0 && textoCompleto !== this.ultimaSecuenciaVista) {
+        if (contenedorTabla && etiqueta) {
+            // Leemos el color actual del borde
+            const colorActual = contenedorTabla.style.borderColor;
+            const textoActual = etiqueta.innerText.trim();
+
+            // LÓGICA DEL PRO TIP:
+            // Si el color del borde ha cambiado respecto a lo que vimos antes...
+            // Y hay un texto válido... ¡Es un número nuevo!
+            if (colorActual && colorActual !== this.ultimoColorBorde) {
                 
-                // Convertimos el string "89786" en array ["8", "9", "7", "8", "6"]
-                this.secuenciaMemorizada = textoCompleto.split('');
-                this.ultimaSecuenciaVista = textoCompleto;
+                if (textoActual.length > 0) {
+                    this.secuenciaMemorizada.push(textoActual);
+                    
+                    console.log(`Extensión: 📥 Cambio de color (${colorActual}) -> Guardado: "${textoActual}"`);
+                    window.ProBot.UI.setAccion('learning');
+                }
                 
-                console.log(`Extensión: 📥 Memorizada secuencia: ${textoCompleto}`);
-                window.ProBot.UI.setAccion('learning');
+                // Actualizamos el estado para no guardar el mismo hasta que cambie el color otra vez
+                this.ultimoColorBorde = colorActual;
             }
         }
     },
 
-    resolver: async function() {
+    resolver: async function(pantalla) {
         this.enFaseRespuesta = true;
         window.ProBot.UI.setAccion('executing');
 
-        console.log("Extensión: 🛑 Fase de Respuesta. Moviendo números...");
+        console.log("Extensión: 🛑 Fase de Respuesta. Secuencia:", this.secuenciaMemorizada);
         
-        // Contenedores (Reutilizan los IDs del ejercicio de palabras)
         const listaOrigen = document.getElementById('listaPalabrasTodas');
         const listaDestino = document.getElementById('listaPalabrasMostradas');
 
         if (!listaOrigen || !listaDestino) return;
 
-        // Espera humana
         await window.ProBot.Utils.esperar(1000);
 
-        // Recorremos la secuencia memorizada
         for (let numeroMeta of this.secuenciaMemorizada) {
             
-            // Buscamos un bloque disponible con ese número
-            // Nota: Al moverlo con appendChild, desaparece de listaOrigen,
-            // así que querySelector siempre encontrará el siguiente disponible.
             const opciones = listaOrigen.querySelectorAll('.opcionPalabra');
             let elementoEncontrado = null;
 
@@ -91,17 +98,13 @@ window.ProBot.Estrategias.MEMORIA_NUMEROS_ARRASTRE = {
             }
 
             if (elementoEncontrado) {
-                // Movemos el bloque
                 listaDestino.appendChild(elementoEncontrado);
-                
-                // Delay entre movimientos
                 await window.ProBot.Utils.esperar(400);
             } else {
-                console.warn(`Extensión: ⚠️ No encontré el número "${numeroMeta}" en las opciones.`);
+                console.warn(`Extensión: ⚠️ No encontré el número "${numeroMeta}".`);
             }
         }
 
-        // Click en Responder
         await window.ProBot.Utils.esperar(500);
         const btnResponder = document.getElementById('btnResponder');
         if (btnResponder) {
@@ -109,10 +112,11 @@ window.ProBot.Estrategias.MEMORIA_NUMEROS_ARRASTRE = {
             console.log("Extensión: 🏆 Enviando respuesta.");
         }
 
-        // Limpieza
-        this.secuenciaMemorizada = [];
-        this.ultimaSecuenciaVista = "";
-        window.ProBot.UI.setAccion('idle');
+        // Limpieza diferida
+        setTimeout(() => {
+            this.resetEstado();
+            window.ProBot.UI.setAccion('idle');
+        }, 2000);
     },
 
     aprender: function() { }

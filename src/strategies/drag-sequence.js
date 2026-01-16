@@ -1,5 +1,4 @@
 // --- Recordar la secuencia de palabras ---
-// --- src/strategies/memory-order.js ---
 
 window.ProBot.Estrategias.MEMORIA_ORDEN = {
     nombre: "Memoria Orden (Posiciones)",

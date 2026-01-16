@@ -69,6 +69,7 @@
         "src/strategies/alternating.js", // div[caja]
         "src/strategies/destination.js",
         "src/strategies/menu-attention.js",
+           "src/strategies/text-message.js", 
         // --- NIVEL 3: CLASES GENÉRICAS (Peligrosos - Al final) ---
         // Estos usan .ejercicio__figuras y similares, si se ponen arriba se comen a los demás
         "src/strategies/remember-figure.js", // Huella compuesta (nowrap)
