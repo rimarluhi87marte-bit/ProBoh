@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "ProBoh",
-  "version": "1.0",
+  "version": "1.2",
   "icons": {
     "16": "icons/PROBOH.png",
     "48": "icons/PROBOH.png",
@@ -44,11 +44,14 @@
         "src/strategies/text-block.js", // #IdDivTextoDVBloqueTextoDescendente
         "src/strategies/text-columns.js",
         "src/strategies/number-drag.js", // #etiquetaNumeros
+        "src/strategies/memory-number.js", 
         "src/strategies/drag-sequence.js", // #contenedorCuadros
         "src/strategies/stopwatch.js", // [estilotiempodetiene]
         "src/strategies/duplicate-icon.js", // #contenedorIcono
         "src/strategies/sliding-prg.js",
         // --- NIVEL 2: CLASES ESPECÍFICAS O ATRIBUTOS ---
+         "src/strategies/quiz-chronological.js", 
+        "src/strategies/quiz-modern.js",
         "src/strategies/counting.js", // [clasifica-juego]
         "src/strategies/number-sequence.js", // [container_numeros]
         "src/strategies/number-match.js",

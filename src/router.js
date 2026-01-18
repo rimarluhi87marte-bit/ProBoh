@@ -58,7 +58,7 @@ const AutoNavegador = {
             // Definir el tiempo de espera según el tipo
             // Rápido: 500ms (casi instantáneo pero humano)
             // Lento: 4600ms (tiempo de lectura/seguridad)
-            const tiempoEspera = (tipoVelocidad === 'rapido') ? 500 : 4600;
+            const tiempoEspera = (tipoVelocidad === 'rapido') ? 1000 : 4600;
 
             if (encontrado === this.botonCandidato) {
                 const tiempoPasado = Date.now() - this.tiempoDeteccion;
